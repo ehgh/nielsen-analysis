@@ -70,7 +70,56 @@ rm(temp1)
 rm(temp2)
 rm(temp)
 #############################################################################################################
+#############################################################################################################
+#############################################################################################################
+# in this analysis we calculate the effect of removing nodes on the graph connectivity by counting the 
+# components after removing each node
+# using the purchasing graph G for a store
+weighted_degree <- strength(G)
+degree <- degree(G)
+temp <- sort(degree, decreasing = TRUE)
+component_count <- data.frame(matrix(ncol = 1, nrow = vcount(G)))
+colnames(component_count) <- 'component'
+tempG <- G
+for (i in 1:length(degree)){
+  tempG <- delete.vertices(tempG, names(temp[i]))
+  component_count$component[i] = components(tempG)$no
+}
+Component_Node_Removal <- ggplot(component_count, aes(y = component, x = seq(1,length(component_count$component)))) +
+  geom_point() +
+  theme_bw() +
+  #scale_y_continuous(limits = c(0,1), breaks = seq(0,1,length.out = 6)) +
+  #scale_x_continuous(limits = c(0,1)) + 
+  ggtitle("Number of Components vs. Node Removal") +
+  xlab("Number of Nodes Removed") +
+  ylab("Number of Components")
+Component_Node_Removal
+
+
+#############################################################################################################
+#############################################################################################################
+#############################################################################################################
+
+
+#############################################################################################################
 # plot section
+# Degree to Weighted Degree Ratio
+degree_full <- mapply(c, weighted_degree, degree, SIMPLIFY=FALSE)
+temp <- data.frame(matrix(ncol = 1, nrow = length(degree_full)))
+colnames(temp) <- "DWDR"   # Degree to Weighted Degree Ratio
+for (i in 1:length(degree_full)){
+  temp$DWDR[i] = degree_full[[i]][2] / degree_full[[i]][1]
+}
+DWDR <- ggplot(temp, aes(x = DWDR)) +
+  stat_ecdf() +
+  theme_bw() +
+  scale_y_continuous(limits = c(0,1), breaks = seq(0,1,length.out = 6)) +
+  scale_x_continuous(limits = c(0,1)) + 
+  ggtitle("Degree to Weighted Degree Ratio Distribution") +
+  xlab("Degree to Weighted Degree Ratio") +
+  ylab("CDF")
+DWDR
+
 # edge weight distribution 
 weight_fig <- ggplot(as.data.frame(E(G)$weight), aes(x = E(G)$weight)) +
   stat_ecdf() +
