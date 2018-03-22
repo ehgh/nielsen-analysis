@@ -15,7 +15,7 @@ library(readr)
 
 #############################################################################################################
 #import the selected consumer data (store data) here
-store_data <- read_csv("~/Desktop/research/consumer data/R files/Cal stores/2014/consumer/2323912.csv", 
+store_data <- read_csv("~/Desktop/research/consumer data/R files/Cal stores/2014/consumer/5029028.csv", 
                      col_names = c('trip_code_uc','upc','upc_ver_uc','quantity','total_price_paid','coupon_value','deal_flag_uc'))
 
 #create product graph of store
@@ -75,25 +75,45 @@ rm(temp)
 # in this analysis we calculate the effect of removing nodes on the graph connectivity by counting the 
 # components after removing each node
 # using the purchasing graph G for a store
-weighted_degree <- strength(G)
+weighted_degree <- strength(G, weights = E(G)$weights)
+temp <- sort(weighted_degree, decreasing = TRUE)
 degree <- degree(G)
 temp <- sort(degree, decreasing = TRUE)
-component_count <- data.frame(matrix(ncol = 1, nrow = vcount(G)))
-colnames(component_count) <- 'component'
+# we can use different measures to sort nodes for removal
+between <- betweenness(G, directed = FALSE, weights = E(G)$weights)
+temp <- sort(between, decreasing = TRUE)
+close <- closeness(G,  weights = E(G)$weights)
+temp <- sort(close, decreasing = TRUE)
+
+component_count <- data.frame(matrix(ncol = 2, nrow = vcount(G)))
+colnames(component_count) <- c('component','GCC')
 tempG <- G
-for (i in 1:length(degree)){
+# compare it to a random graph
+ER <- erdos.renyi.game(vcount(G), ecount(G), type=c("gnm"))
+tempG <- ER
+temp <- order(weighted_degree, decreasing = TRUE)
+
+for (i in 1:length(temp)){
   tempG <- delete.vertices(tempG, names(temp[i]))
+  #tempG <- delete.vertices(ER, temp[1:i])
   component_count$component[i] = components(tempG)$no
+  component_count$GCC[i] = components(tempG)$csize[1]/vcount(tempG)
 }
-Component_Node_Removal <- ggplot(component_count, aes(y = component, x = seq(1,length(component_count$component)))) +
+Component_Node_Removal <- ggplot(component_count, aes(y = GCC, x = seq(1,length(component_count$component)))) +
+#Component_Node_Removal <- ggplot(component_count, aes(y = component, x = seq(1,length(component_count$component)))) +
   geom_point() +
   theme_bw() +
   #scale_y_continuous(limits = c(0,1), breaks = seq(0,1,length.out = 6)) +
   #scale_x_continuous(limits = c(0,1)) + 
-  ggtitle("Number of Components vs. Node Removal") +
+#  ggtitle("Number of Components vs. Node Removal
+#          Ordered by Closeness Centrality") +
   xlab("Number of Nodes Removed") +
   ylab("Number of Components")
 Component_Node_Removal
+address <- "~/Desktop/research/consumer data/plots/new plots/component GCC wdegree"
+pdf(address, width=6.5, height=6)
+print(Component_Node_Removal)
+dev.off()
 
 
 #############################################################################################################
@@ -133,7 +153,12 @@ weight_fig
 
 # degree distribution
 degree_fig <- ggplot(as.data.frame(degree(G)), aes(x = degree(G))) +
+  stat_ecdf()
+degree_fig_data <- ggplot_build(degree_fig)$data[[1]]
+#degree_fig <- ggplot(degree_fig_data, aes(x = x, y = 1 - y)) +
+degree_fig <- ggplot(as.data.frame(degree(G)), aes(x = degree(G))) +
   stat_ecdf() +
+  #geom_step() +
   theme_bw() +
   scale_y_log10() +
   scale_x_log10() + 
